@@ -359,13 +359,13 @@ const builtInShortcuts: Array<{
   // Cmd+P - open command palette (file search)
   { accelerator: "p", key: "p", ctrl: false, shift: false, alt: false, meta: true, action: "open-command-palette" },
   // Cmd+Shift+P - open command palette (commands)
-  { accelerator: "shift+p", key: "p", ctrl: false, shift: true, alt: false, meta: true },
+  { accelerator: "cmd+shift+p", key: "p", ctrl: false, shift: true, alt: false, meta: true },
   // Cmd+Shift+F - find all in folder
-  { accelerator: "shift+f", key: "f", ctrl: false, shift: true, alt: false, meta: true },
+  { accelerator: "cmd+shift+f", key: "f", ctrl: false, shift: true, alt: false, meta: true },
   // Cmd+W - close tab
   { accelerator: "w", key: "w", ctrl: false, shift: false, alt: false, meta: true },
   // Cmd+Shift+W - close window
-  { accelerator: "shift+w", key: "w", ctrl: false, shift: true, alt: false, meta: true },
+  { accelerator: "cmd+shift+w", key: "w", ctrl: false, shift: true, alt: false, meta: true },
   // Ctrl+Tab - next tab (won't work when webview focused, but standard shortcut)
   { accelerator: "ctrl+tab", key: "Tab", ctrl: true, shift: false, alt: false, meta: false },
   // Ctrl+Shift+Tab - previous tab
@@ -377,7 +377,7 @@ let registeredPluginShortcuts: Set<string> = new Set();
 
 // Convert plugin key format to Electrobun accelerator format
 // Plugin format: "ctrl+shift+m" or "cmd+p"
-// Electrobun format: "ctrl+shift+m" or just "p" (Cmd is implicit for letters)
+// Electrobun format: "cmd+p", "cmd+shift+m", etc.
 function convertToAccelerator(keyStr: string): string {
   const parts = keyStr.toLowerCase().split('+');
   const key = parts[parts.length - 1];
@@ -388,11 +388,10 @@ function convertToAccelerator(keyStr: string): string {
 
   // Build accelerator string
   const modifiers: string[] = [];
+  if (hasCmd) modifiers.push('cmd');
   if (hasCtrl) modifiers.push('ctrl');
   if (hasAlt) modifiers.push('alt');
   if (hasShift) modifiers.push('shift');
-  // Note: For Electrobun on macOS, Cmd is implicit for menu accelerators,
-  // so we don't include it. But if ctrl is specified, we keep it.
 
   if (modifiers.length > 0) {
     return `${modifiers.join('+')}+${key}`;
@@ -417,7 +416,7 @@ function updateApplicationMenu() {
   ApplicationMenu.setApplicationMenu([
     {
       label: "co(lab)",
-      submenu: [{ role: "quit", accelerator: "q" }],
+      submenu: [{ role: "quit", accelerator: "cmd+q" }],
     },
     {
       label: "File",
@@ -426,32 +425,32 @@ function updateApplicationMenu() {
           type: "normal",
           label: "Open File...",
           action: "open-file",
-          accelerator: "o",
+          accelerator: "cmd+o",
         },
         {
           type: "normal",
           label: "Open Folder...",
           action: "open-folder",
-          accelerator: "shift+o",
+          accelerator: "cmd+shift+o",
         },
         { type: "separator" },
         {
           type: "normal",
           label: "New Browser Tab",
           action: "new-browser-tab",
-          accelerator: "t",
+          accelerator: "cmd+t",
         },
         {
           type: "normal",
           label: "Close Tab",
           action: "close-tab",
-          accelerator: "w",
+          accelerator: "cmd+w",
         },
         {
           type: "normal",
           label: "Close Window",
           action: "close-window",
-          accelerator: "shift+w",
+          accelerator: "cmd+shift+w",
         },
       ],
     },
@@ -493,19 +492,19 @@ function updateApplicationMenu() {
           type: "normal",
           label: "Command Palette",
           action: "open-command-palette",
-          accelerator: "p",
+          accelerator: "cmd+p",
         },
         {
           type: "normal",
           label: "Command Palette (Commands)",
-          action: "global-shortcut:shift+p",
-          accelerator: "shift+p",
+          action: "global-shortcut:cmd+shift+p",
+          accelerator: "cmd+shift+p",
         },
         {
           type: "normal",
           label: "Find in Files",
-          action: "global-shortcut:shift+f",
-          accelerator: "shift+f",
+          action: "global-shortcut:cmd+shift+f",
+          accelerator: "cmd+shift+f",
         },
         // Add plugin shortcuts here if any exist
         ...(pluginShortcutItems.length > 0 ? [
