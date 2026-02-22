@@ -28,7 +28,11 @@ export default {
             "entitlements": {
 
             }
-        }
+        },
+        watch: [],
+        watchIgnore: [
+            'assets/licenses.html'
+        ]
     },
     "runtime": {
         exitOnLastWindowClosed: false

@@ -6,8 +6,7 @@
 	"scripts": {
 		"setup": "bun run scripts/setup-deps.ts",
 		"build:dev": "bun setup && electrobun build",
-		"start:dev": "electrobun dev",
-		"dev": "bun build:dev && bun start:dev",
+		"dev": "bun setup && electrobun dev",
 		"build:canary": "electrobun build --env=canary",
 		"build:stable": "electrobun build --env=stable",
 		"docs:dev": "cd documentation && bun install && bun start",
@@ -44,7 +43,7 @@
 		"@xterm/addon-webgl": "^0.18.0",
 		"@xterm/xterm": "^5.5.0",
 		"ansi-to-html": "^0.7.2",
-		"electrobun": "1.13.1-beta.0",
+		"electrobun": "1.14.0-beta.0",
 		"esbuild": "^0.25.12",
 		"esbuild-monaco-editor-plugin": "^0.1.1",
 		"esbuild-plugin-solid": "^0.5.0",
