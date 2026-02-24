@@ -44,7 +44,7 @@ export const install = () => {
   //   `node@${NODE_VERSION}`,
   // ]);
   // console.log("installResult1", installResult1);
-  const foldername = `node-v${NODE_VERSION}-darwin-${process.arch}`;
+  const foldername = `node-v${NODE_VERSION}-${process.platform}-${process.arch}`
   const downloadURl = `https://nodejs.org/dist/v${NODE_VERSION}/${foldername}.tar.gz`;
   const installResult = execSpawnSync(
     "curl",

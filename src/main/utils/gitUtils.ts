@@ -3,9 +3,7 @@ import { GIT_BINARY_PATH, GIT_VENDOR_PATH } from "../consts/paths";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-
-// Path to macOS osxkeychain credential helper (if available)
-const OSXKEYCHAIN_HELPER = "/Library/Developer/CommandLineTools/usr/libexec/git-core/git-credential-osxkeychain";
+import { getPlatform } from "../platform/index.ts";
 
 // Environment variables for vendored git
 // - GIT_EXEC_PATH: sets exec path so git can find helpers like git-remote-https
@@ -14,9 +12,6 @@ const gitEnv = {
   GIT_EXEC_PATH: GIT_VENDOR_PATH,
   HOME: os.homedir(),
 };
-
-// Check if osxkeychain helper is available for credential management
-const hasOsxKeychainHelper = fs.existsSync(OSXKEYCHAIN_HELPER);
 
 const git = (baseDir: string) => {
   return simpleGit({
@@ -136,8 +131,9 @@ export const gitValidateUrl = async (gitUrl: string) => {
 
     // Build ls-remote command with credential helper for private repos
     const lsRemoteArgs: string[] = [];
-    if (hasOsxKeychainHelper) {
-      lsRemoteArgs.push('-c', `credential.helper=${OSXKEYCHAIN_HELPER}`);
+    const credHelper = getPlatform().getCredentialHelperPath()
+    if (credHelper) {
+      lsRemoteArgs.push('-c', `credential.helper=${credHelper}`);
     }
     lsRemoteArgs.push('ls-remote', gitUrl, 'HEAD');
 
@@ -205,8 +201,9 @@ export const gitClone = async (repoPath: string, gitUrl: string, createMainBranc
 
       // Build clone command with credential helper for private repos
       const cloneArgs: string[] = [];
-      if (hasOsxKeychainHelper) {
-        cloneArgs.push('-c', `credential.helper=${OSXKEYCHAIN_HELPER}`);
+      const credHelper = getPlatform().getCredentialHelperPath()
+      if (credHelper) {
+        cloneArgs.push('-c', `credential.helper=${credHelper}`);
       }
       cloneArgs.push('clone', gitUrl, folderName);
 
@@ -322,8 +319,9 @@ export const gitFetch = async (repoRoot: string, remote?: string, options: strin
 
     // Build fetch command with credential helper configuration
     const fetchArgs: string[] = [];
-    if (hasOsxKeychainHelper) {
-      fetchArgs.push('-c', `credential.helper=${OSXKEYCHAIN_HELPER}`);
+    const credHelper = getPlatform().getCredentialHelperPath()
+    if (credHelper) {
+      fetchArgs.push('-c', `credential.helper=${credHelper}`);
     }
     fetchArgs.push('fetch');
     if (remote) {
@@ -355,8 +353,9 @@ export const gitPull = async (repoRoot: string, remote?: string, branch?: string
 
     // Build pull command with credential helper configuration
     const pullArgs: string[] = [];
-    if (hasOsxKeychainHelper) {
-      pullArgs.push('-c', `credential.helper=${OSXKEYCHAIN_HELPER}`);
+    const credHelper = getPlatform().getCredentialHelperPath()
+    if (credHelper) {
+      pullArgs.push('-c', `credential.helper=${credHelper}`);
     }
     pullArgs.push('pull');
     if (remote) {
@@ -391,8 +390,9 @@ export const gitPush = async (repoRoot: string, remote?: string, branch?: string
 
     // Build push command with credential helper configuration
     const pushArgs: string[] = [];
-    if (hasOsxKeychainHelper) {
-      pushArgs.push('-c', `credential.helper=${OSXKEYCHAIN_HELPER}`);
+    const credHelper = getPlatform().getCredentialHelperPath()
+    if (credHelper) {
+      pushArgs.push('-c', `credential.helper=${credHelper}`);
     }
     pushArgs.push('push');
     if (remote) {
@@ -450,10 +450,10 @@ export const getGitConfig = async (): Promise<{ name: string; email: string; has
       // Not configured
     }
 
-    return { name, email, hasKeychainHelper: hasOsxKeychainHelper };
+    return { name, email, hasKeychainHelper: getPlatform().hasCredentialHelper() };
   } catch (error) {
     console.error('Error getting git config:', error);
-    return { name: '', email: '', hasKeychainHelper: hasOsxKeychainHelper };
+    return { name: '', email: '', hasKeychainHelper: getPlatform().hasCredentialHelper() };
   }
 };
 
@@ -483,67 +483,19 @@ export const setGitConfig = async (name: string, email: string): Promise<void> =
   }
 };
 
-// Check if GitHub credentials are stored in the macOS Keychain
+// Check if GitHub credentials are stored (delegates to platform-specific implementation)
 export const checkGitHubCredentials = async (): Promise<{ hasCredentials: boolean; username?: string }> => {
-  if (!hasOsxKeychainHelper) {
-    return { hasCredentials: false };
-  }
-
-  try {
-    // Use security command to check for github.com credentials in keychain
-    const { execSync } = await import('child_process');
-    const result = execSync('security find-internet-password -s github.com 2>/dev/null', { encoding: 'utf-8' });
-
-    // Parse the account name from the output
-    const acctMatch = result.match(/"acct"<blob>="([^"]+)"/);
-    const username = acctMatch ? acctMatch[1] : undefined;
-
-    return { hasCredentials: true, username };
-  } catch (error) {
-    // No credentials found or error accessing keychain
-    return { hasCredentials: false };
-  }
+  return getPlatform().checkGitHubCredentials()
 };
 
-// Store GitHub credentials in the macOS Keychain using git credential helper
+// Store GitHub credentials (delegates to platform-specific implementation)
 export const storeGitHubCredentials = async (username: string, token: string): Promise<void> => {
-  if (!hasOsxKeychainHelper) {
-    throw new Error('macOS Keychain credential helper not available');
-  }
-
-  try {
-    const { execSync } = await import('child_process');
-
-    // Use printf to properly handle newlines (echo -e not available on all systems)
-    // Format required by git-credential: key=value pairs separated by newlines, ending with empty line
-    const input = `protocol=https
-host=github.com
-username=${username}
-password=${token}
-`;
-    execSync(`printf '%s' "${input}" | ${OSXKEYCHAIN_HELPER} store`, { encoding: 'utf-8' });
-  } catch (error) {
-    console.error('Error storing GitHub credentials:', error);
-    throw error;
-  }
+  return getPlatform().storeGitHubCredentials(username, token)
 };
 
-// Remove GitHub credentials from the macOS Keychain
+// Remove GitHub credentials (delegates to platform-specific implementation)
 export const removeGitHubCredentials = async (): Promise<void> => {
-  if (!hasOsxKeychainHelper) {
-    throw new Error('macOS Keychain credential helper not available');
-  }
-
-  try {
-    const { execSync } = await import('child_process');
-
-    // Use git credential helper to erase credentials
-    const input = `protocol=https\nhost=github.com\n`;
-    execSync(`echo "${input}" | ${OSXKEYCHAIN_HELPER} erase`, { encoding: 'utf-8' });
-  } catch (error) {
-    console.error('Error removing GitHub credentials:', error);
-    throw error;
-  }
+  return getPlatform().removeGitHubCredentials()
 };
 
 export const gitCheckoutBranch = async (repoRoot: string, branch: string, options: string[] = []) => {

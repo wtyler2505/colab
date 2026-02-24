@@ -26,6 +26,7 @@ import { getSlateForNode, getProjectForNodePath } from "../files";
 import { type DomEventWithTarget } from "../../../shared/types/types";
 import { Show, createEffect, createSignal, createMemo } from "solid-js";
 import { electrobun } from "../init";
+import { IS_MAC, MOD_KEY, FILE_MANAGER_LABEL } from "../../utils/platformUtils";
 
 import { join } from "../../utils/pathUtils";
 import { getNode } from "../FileWatcher";
@@ -62,15 +63,17 @@ const colabPreloadScript = `
 
   // Forward certain keyboard shortcuts to the host so they work
   // even when the webview OOPIF has focus
+  var _isMac = navigator.platform && navigator.platform.includes('Mac');
   document.addEventListener('keydown', function(e) {
     var shouldForward = false;
+    var modKey = _isMac ? e.metaKey : e.ctrlKey;
 
     // Ctrl+Tab / Ctrl+Shift+Tab - tab cycling
     if (e.key === 'Tab' && e.ctrlKey) {
       shouldForward = true;
     }
-    // Cmd+F - find in page
-    if (e.key === 'f' && e.metaKey && !e.shiftKey && !e.ctrlKey) {
+    // Mod+F - find in page
+    if (e.key === 'f' && modKey && !e.shiftKey) {
       shouldForward = true;
     }
     // Note: Cmd+W and Cmd+Shift+W are now handled by the application menu
@@ -290,7 +293,7 @@ export const WebSlate = ({
 	};
 
 	const handleFindKeyDown = (e: KeyboardEvent) => {
-		if (e.key === "Enter" || (e.key === "g" && e.metaKey)) {
+		if (e.key === "Enter" || (e.key === "g" && e[MOD_KEY])) {
 			e.preventDefault();
 			if (e.shiftKey) {
 				findPrev();
@@ -927,7 +930,7 @@ console.log('Preload script loaded for:', window.location.href);
 		<div
 			style="display: flex; flex-direction: column; height: 100%; position: relative;"
 			onKeyDown={(e) => {
-				if (e.key === "f" && e.metaKey && !e.shiftKey && !e.ctrlKey) {
+				if (e.key === "f" && e[MOD_KEY] && !e.shiftKey) {
 					e.preventDefault();
 					toggleFindBar();
 				}
@@ -1027,7 +1030,7 @@ console.log('Preload script loaded for:', window.location.href);
 									state.downloadNotification?.status === "downloading"
 										? `Downloading: ${state.downloadNotification?.filename} (${state.downloadNotification?.progress || 0}%)`
 										: state.downloadNotification?.status === "completed"
-											? `Show ${state.downloadNotification?.filename} in Finder`
+											? `Show ${state.downloadNotification?.filename} in ${FILE_MANAGER_LABEL}`
 											: `Download failed: ${state.downloadNotification?.filename}`
 								}
 							>
@@ -1643,14 +1646,14 @@ console.log('Preload script loaded for:', window.location.href);
 							}
 
 							// Keyboard shortcuts forwarded from webview
-							// This allows Ctrl+Tab/Ctrl+Shift+Tab and Cmd+F to work even when the webview OOPIF has focus
+							// This allows Ctrl+Tab/Ctrl+Shift+Tab and Mod+F to work even when the webview OOPIF has focus
 							if (msg?.type === "colab:keydown") {
-								// Handle Cmd+F locally for find-in-page
+								const msgModKey = IS_MAC ? msg.metaKey : msg.ctrlKey;
+								// Handle Mod+F locally for find-in-page
 								if (
 									msg.key === "f" &&
-									msg.metaKey &&
-									!msg.shiftKey &&
-									!msg.ctrlKey
+									msgModKey &&
+									!msg.shiftKey
 								) {
 									toggleFindBar();
 									return;

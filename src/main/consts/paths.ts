@@ -1,7 +1,34 @@
 import { join, resolve } from "path";
 import { Updater } from "electrobun";
 import { existsSync, mkdirSync } from "fs";
+import { execSync } from "child_process";
 import { getAppPath, getPath } from "../newapi";
+
+const IS_LINUX = process.platform === "linux"
+
+/**
+ * Resolve a binary path: prefer vendored (macOS), fall back to system binary (Linux).
+ * On macOS the vendored binaries in ./vendor are Mach-O arm64.
+ * On Linux we use system-installed binaries located via `which`.
+ */
+const resolveVendoredBinary = (vendoredPath: string, binaryName: string): string => {
+	if (existsSync(vendoredPath)) {
+		return vendoredPath
+	}
+	if (IS_LINUX) {
+		try {
+			const systemPath = execSync(`which ${binaryName}`, { encoding: "utf-8" }).trim()
+			if (systemPath && existsSync(systemPath)) {
+				return systemPath
+			}
+		} catch {
+			// which failed — binary not found on PATH
+		}
+	}
+	// Return the vendored path as default even if it doesn't exist yet
+	// (it may be installed later by the peer dependency installer)
+	return vendoredPath
+}
 
 const channel = await Updater.localInfo.channel();
 
@@ -44,15 +71,15 @@ export const COLAB_ENV_PATH = `${COLAB_DEPS_PATH}`;
 
 // peer dependencies
 // binaries
-export const BUN_BINARY_PATH = join(BUNDLED_BIN_PATH, "bun"); //join(COLAB_DEPS_PATH, "bun");
-export const BIOME_BINARY_PATH = join(COLAB_DEPS_PATH, "biome");
-export const LLAMA_CPP_BINARY_PATH = join(BUNDLED_BIN_PATH, "llama-cli");
-export const TSSERVER_PATH = join(COLAB_DEPS_PATH, "tsserver");
+export const BUN_BINARY_PATH = resolveVendoredBinary(join(BUNDLED_BIN_PATH, "bun"), "bun")
+export const BIOME_BINARY_PATH = join(COLAB_DEPS_PATH, "biome")
+export const LLAMA_CPP_BINARY_PATH = join(BUNDLED_BIN_PATH, "llama-cli")
+export const TSSERVER_PATH = join(COLAB_DEPS_PATH, "tsserver")
 // todo: switch to libgit2 and bundle it with co(lab)
-export const GIT_VENDOR_PATH = join(BUNDLED_BIN_PATH, "vendor");
-export const GIT_BINARY_PATH = join(GIT_VENDOR_PATH, "git");
-export const FD_BINARY_PATH = join(BUNDLED_BIN_PATH, "vendor", "fd");
-export const RG_BINARY_PATH = join(BUNDLED_BIN_PATH, "vendor", "rg");
+export const GIT_VENDOR_PATH = join(BUNDLED_BIN_PATH, "vendor")
+export const GIT_BINARY_PATH = resolveVendoredBinary(join(GIT_VENDOR_PATH, "git"), "git")
+export const FD_BINARY_PATH = resolveVendoredBinary(join(BUNDLED_BIN_PATH, "vendor", "fd"), "fd")
+export const RG_BINARY_PATH = resolveVendoredBinary(join(BUNDLED_BIN_PATH, "vendor", "rg"), "rg")
 // installations paths
 // bun.sh
 // create a folder for the bundled bun bin to install npm dependencies to
@@ -64,8 +91,8 @@ if (!existsSync(BUN_DEPS_FOLDER)) {
 
 // node (needed for tsserver)
 // TODO: switch to bun when tsserver works with bun
-// export const NODE_BINARY_PATH = join(COLAB_DEPS_PATH, "node");
-// export const NPM_BINARY_PATH = join(COLAB_DEPS_PATH, "npm");
+export const NODE_BINARY_PATH = join(COLAB_DEPS_PATH, "node")
+export const NPM_BINARY_PATH = join(COLAB_DEPS_PATH, "npm")
 
 // tsserver
 export const TYPESCRIPT_PACKAGE_PATH = join(BUN_DEPS_FOLDER, "typescript");

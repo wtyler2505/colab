@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const json = std.json;
 const posix = std.posix;
 const print = std.debug.print;
@@ -197,33 +198,49 @@ fn writeToShell(data: []const u8) !void {
 
 fn getCurrentWorkingDirectory() !void {
     if (child_pid) |pid| {
-        const c = @cImport({
-            @cInclude("libproc.h");
-            @cInclude("stdlib.h");
-        });
-        
-        // Allocate buffer for the path
-        var path_buffer: [4096]u8 = undefined;
-        
-        // Use proc_pidpath to get the current working directory on macOS
-        const result = c.proc_pidpath(@intCast(pid), &path_buffer, path_buffer.len);
-        
-        if (result > 0) {
-            // Success - we got the executable path, but we need the CWD
-            // Let's try a different approach using proc_pidinfo
-            const vnodepathinfo_size = @sizeOf(c.proc_vnodepathinfo);
-            var vnode_info: c.proc_vnodepathinfo = undefined;
-            
-            const info_result = c.proc_pidinfo(@intCast(pid), c.PROC_PIDVNODEPATHINFO, 0, &vnode_info, vnodepathinfo_size);
-            
-            if (info_result == vnodepathinfo_size) {
-                const cwd_path = std.mem.sliceTo(&vnode_info.pvi_cdir.vip_path, 0);
-                try sendOutputMessage("cwd_update", cwd_path, null);
+        if (comptime builtin.os.tag == .linux) {
+            // Linux: read /proc/<pid>/cwd symlink
+            var proc_path_buf: [64:0]u8 = std.mem.zeroes([64:0]u8);
+            _ = std.fmt.bufPrint(&proc_path_buf, "/proc/{d}/cwd", .{pid}) catch {
+                try sendOutputMessage("error", null, "Failed to format /proc path for CWD");
+                return;
+            };
+
+            var link_buf: [std.fs.max_path_bytes]u8 = undefined;
+            const cwd_path = std.posix.readlinkat(std.posix.AT.FDCWD, &proc_path_buf, &link_buf) catch {
+                try sendOutputMessage("error", null, "Failed to readlink /proc/<pid>/cwd");
+                return;
+            };
+
+            try sendOutputMessage("cwd_update", cwd_path, null);
+        } else if (comptime builtin.os.tag == .macos) {
+            // macOS: use libproc to query the process CWD
+            const c = @cImport({
+                @cInclude("libproc.h");
+                @cInclude("stdlib.h");
+            });
+
+            var path_buffer: [4096]u8 = undefined;
+
+            const result = c.proc_pidpath(@intCast(pid), &path_buffer, path_buffer.len);
+
+            if (result > 0) {
+                const vnodepathinfo_size = @sizeOf(c.proc_vnodepathinfo);
+                var vnode_info: c.proc_vnodepathinfo = undefined;
+
+                const info_result = c.proc_pidinfo(@intCast(pid), c.PROC_PIDVNODEPATHINFO, 0, &vnode_info, vnodepathinfo_size);
+
+                if (info_result == vnodepathinfo_size) {
+                    const cwd_path = std.mem.sliceTo(&vnode_info.pvi_cdir.vip_path, 0);
+                    try sendOutputMessage("cwd_update", cwd_path, null);
+                } else {
+                    try sendOutputMessage("error", null, "Failed to get CWD via proc_pidinfo");
+                }
             } else {
-                try sendOutputMessage("error", null, "Failed to get CWD via proc_pidinfo");
+                try sendOutputMessage("error", null, "Failed to get process info");
             }
         } else {
-            try sendOutputMessage("error", null, "Failed to get process info");
+            try sendOutputMessage("error", null, "getCurrentWorkingDirectory not supported on this platform");
         }
     }
 }
@@ -321,7 +338,7 @@ fn readPtyOutput() !void {
             const bytes_read = c.read(@intCast(master), &buffer, buffer.len);
             
             if (bytes_read < 0) {
-                const errno_val = c.__error().*;
+                const errno_val = std.c._errno().*;
                 if (errno_val == c.EAGAIN or errno_val == c.EWOULDBLOCK) {
                     continue;
                 } else {

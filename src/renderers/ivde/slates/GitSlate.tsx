@@ -3926,7 +3926,7 @@ const FileListItem = ({
         "font-size": "13px",
         padding: "2px 8px",
         "min-height": "22px",
-        "font-family": "'Segoe UI', 'SF Pro Display', system-ui, sans-serif",
+        "font-family": "system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, 'Noto Sans', sans-serif",
       }}
     >
       <div

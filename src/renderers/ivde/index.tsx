@@ -115,6 +115,7 @@ import {
 } from "./settings/forms";
 
 import { parentNodePath } from "../utils/fileUtils";
+import { IS_MAC, MOD_KEY } from "../utils/platformUtils";
 
 import { join } from "../utils/pathUtils";
 
@@ -188,7 +189,7 @@ document.addEventListener(
 		// todo (yoav): normalize the pattern here so each shortcut is its own function
 		// that gets registered
 
-		if (e.key === "f" && e.metaKey === true && e.shiftKey === true) {
+		if (e.key === "f" && e[MOD_KEY] === true && e.shiftKey === true) {
 			// cmd+shift+f - focus Find All input
 			e.preventDefault();
 			e.stopImmediatePropagation();
@@ -212,7 +213,7 @@ document.addEventListener(
 					globalFindAllInput?.select();
 				}, 100);
 			}
-		} else if (e.key === "p" && e.metaKey === true && e.shiftKey === true) {
+		} else if (e.key === "p" && e[MOD_KEY] === true && e.shiftKey === true) {
 			// cmd+shift+p - open command palette
 			e.preventDefault();
 			e.stopImmediatePropagation();
@@ -220,7 +221,7 @@ document.addEventListener(
 		// cmd+t handled by application menu via newBrowserTab RPC
 		// cmd+w handled by application menu via closeCurrentTab RPC
 		// cmd+shift+w handled by application menu via closeCurrentWindow RPC
-		} else if (e.key === "r" && e.metaKey === true) {
+		} else if (e.key === "r" && e[MOD_KEY] === true) {
 			// refresh the current tab
 			const currentTab = getCurrentTab();
 			if (!currentTab) {
@@ -290,7 +291,7 @@ document.addEventListener(
 					currentPane.currentTabId = nextTabId;
 				}),
 			);
-		} else if (e.key === "l" && e.metaKey === true) {
+		} else if (e.key === "l" && e[MOD_KEY] === true) {
 			// split pane to the right
 			console.log("focos url bar");
 		}
@@ -336,14 +337,17 @@ function parseKeyString(keyStr: string): { key: string; ctrl: boolean; shift: bo
 }
 
 // Helper to check if an event matches a keybinding
+// On Linux/Windows, "cmd"/"meta" in keybinding strings maps to ctrlKey
 function matchesKeybinding(e: KeyboardEvent, keyStr: string): boolean {
 	const parsed = parseKeyString(keyStr);
+	const modMatches = IS_MAC
+		? (e.metaKey === parsed.meta && e.ctrlKey === parsed.ctrl)
+		: (e[MOD_KEY] === (parsed.meta || parsed.ctrl));
 	return (
 		e.key.toLowerCase() === parsed.key &&
-		e.ctrlKey === parsed.ctrl &&
+		modMatches &&
 		e.shiftKey === parsed.shift &&
-		e.altKey === parsed.alt &&
-		e.metaKey === parsed.meta
+		e.altKey === parsed.alt
 	);
 }
 

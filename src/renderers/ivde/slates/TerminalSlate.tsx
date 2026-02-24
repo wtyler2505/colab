@@ -7,6 +7,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
 import { electrobun } from "../init";
+import { MOD_KEY, MOD_SYMBOL, FONT_STACK_MONO } from "../../utils/platformUtils";
 
 export const TerminalSlate = ({ tabId }: { tabId: string }) => {
   const tab = () => getWindow()?.tabs[tabId] as TerminalTabType | undefined;
@@ -89,7 +90,7 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
       terminal = new Terminal({
         cursorBlink: true,
         fontSize: 14,
-        fontFamily: 'Monaco, "Courier New", monospace',
+        fontFamily: FONT_STACK_MONO,
         theme: {
           background: "#000005",
           foreground: "#888888",
@@ -105,7 +106,7 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
       const webLinksAddon = new WebLinksAddon(
         (event: MouseEvent, uri: string) => {
           // Only open if Alt or Cmd/Meta is held
-          if (event.altKey || event.metaKey) {
+          if (event.altKey || event[MOD_KEY]) {
             event.preventDefault();
             openNewTabForNode('__COLAB_INTERNAL__/web', false, { focusNewTab: true, url: uri });
           }
@@ -118,7 +119,7 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
             // Show tooltip explaining how to open the link
             const tooltip = document.createElement('div');
             tooltip.className = 'colab-link-tooltip';
-            tooltip.textContent = `⌘+click or ⌥+click to open: ${uri.length > 50 ? uri.slice(0, 50) + '...' : uri}`;
+            tooltip.textContent = `${MOD_SYMBOL}+click or ⌥+click to open: ${uri.length > 50 ? uri.slice(0, 50) + '...' : uri}`;
             tooltip.style.cssText = `
               position: fixed;
               left: ${event.clientX + 10}px;
@@ -161,8 +162,8 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
 
       // Handle custom keyboard shortcuts
       terminal.attachCustomKeyEventHandler((event) => {
-        // Cmd+Enter or Shift+Enter: Multi-line command continuation with backslash
-        if (event.key === 'Enter' && (event.metaKey || event.shiftKey) && !event.ctrlKey) {
+        // Mod+Enter or Shift+Enter: Multi-line command continuation with backslash
+        if (event.key === 'Enter' && (event[MOD_KEY] || event.shiftKey)) {
           event.preventDefault();
           if (terminalId()) {
             electrobun.rpc?.request.writeToTerminal({
@@ -173,8 +174,8 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
           return false;
         }
 
-        // Cmd+K: Clear terminal
-        if (event.key === 'k' && event.metaKey && !event.shiftKey && !event.ctrlKey) {
+        // Mod+K: Clear terminal
+        if (event.key === 'k' && event[MOD_KEY] && !event.shiftKey) {
           event.preventDefault();
           terminal?.clear();
           // Also send clear command to the shell
@@ -187,8 +188,8 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
           return false;
         }
 
-        // Cmd+F: Open search
-        if (event.key === 'f' && event.metaKey && !event.shiftKey && !event.ctrlKey) {
+        // Mod+F: Open search
+        if (event.key === 'f' && event[MOD_KEY] && !event.shiftKey) {
           event.preventDefault();
           setShowSearch(true);
           setTimeout(() => searchInputRef?.focus(), 0);
@@ -205,8 +206,8 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
           return false;
         }
 
-        // Cmd+G: Find next, Cmd+Shift+G: Find previous
-        if (event.key === 'g' && event.metaKey && showSearch() && searchQuery()) {
+        // Mod+G: Find next, Mod+Shift+G: Find previous
+        if (event.key === 'g' && event[MOD_KEY] && showSearch() && searchQuery()) {
           event.preventDefault();
           if (event.shiftKey) {
             searchAddon?.findPrevious(searchQuery(), { caseSensitive: false, regex: false });
@@ -324,7 +325,7 @@ export const TerminalSlate = ({ tabId }: { tabId: string }) => {
   };
 
   const handleSearchKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' || (e.key === 'g' && e.metaKey)) {
+    if (e.key === 'Enter' || (e.key === 'g' && e[MOD_KEY])) {
       e.preventDefault();
       if (e.shiftKey) {
         searchAddon?.findPrevious(searchQuery(), { caseSensitive: false, regex: false });

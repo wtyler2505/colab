@@ -69,7 +69,7 @@ export const DiffEditor = ({
           border-radius: 3px !important;
           margin: 1px !important;
           transition: all 0.15s ease !important;
-          font-family: 'SF Pro Display', 'Segoe UI', system-ui, sans-serif !important;
+          font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, 'Noto Sans', sans-serif !important;
         }
         
         .stage-line-glyph.stage {
@@ -244,7 +244,7 @@ export const DiffEditor = ({
               border-radius: 3px !important;
               margin: 1px !important;
               transition: all 0.15s ease !important;
-              font-family: 'SF Pro Display', 'Segoe UI', system-ui, sans-serif !important;
+              font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, 'Noto Sans', sans-serif !important;
             }
             
             .staging-glyph-stage {
@@ -484,7 +484,7 @@ export const DiffEditor = ({
             border-radius: 3px !important;
             margin: 1px !important;
             transition: all 0.15s ease !important;
-            font-family: 'SF Pro Display', 'Segoe UI', system-ui, sans-serif !important;
+            font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, 'Noto Sans', sans-serif !important;
           }
           
           .staging-glyph-stage {
@@ -654,7 +654,7 @@ export const DiffEditor = ({
               border-radius: 3px !important;
               margin: 1px !important;
               transition: all 0.15s ease !important;
-              font-family: 'SF Pro Display', 'Segoe UI', system-ui, sans-serif !important;
+              font-family: system-ui, -apple-system, 'Segoe UI', Ubuntu, Cantarell, 'Noto Sans', sans-serif !important;
             }
             
             .staging-glyph-stage {

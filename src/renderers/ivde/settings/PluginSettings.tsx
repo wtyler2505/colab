@@ -415,7 +415,7 @@ export const PluginSettings = (): JSXElement => {
                               outline: 'none',
                               cursor: 'text',
                               display: 'block',
-                              'font-family': "'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+                              'font-family': "'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
                               'font-size': '12px',
                               'padding-top': '8px',
                               'padding-right': '36px',

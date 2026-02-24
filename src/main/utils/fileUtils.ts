@@ -14,7 +14,7 @@ import {
   type PreviewFileTreeType,
 } from "../../shared/types/types";
 import { isPathSafe } from "../../shared/utils/files";
-import { Utils } from "electrobun/bun";
+import { getPlatform } from "../platform/index.ts";
 import { BUN_BINARY_PATH, COLAB_ENV_PATH, FD_BINARY_PATH, RG_BINARY_PATH } from "../consts/paths";
 import { spawn } from "child_process";
 import path from "path";
@@ -27,7 +27,7 @@ export const safeTrashFileOrFolder = (absolutePath: string) => {
     // the "put back" functionality
     // todo (yoav): maybe we can implement undo delete in colab
 
-    Utils.moveToTrash(absolutePath);
+    getPlatform().moveToTrash(absolutePath);
   }
 };
 

@@ -137,6 +137,7 @@ import { terminalManager } from "./utils/terminalManager";
 // import { terminalManagerPty as terminalManager } from "./utils/terminalManagerPty";
 import { getFaviconForUrl } from "./utils/urlUtils";
 import { pluginManager, searchPlugins, getPackageInfo } from "./plugins";
+import { getPlatform } from "./platform/index.ts";
 
 const localInfo = await Updater.getLocallocalInfo();
 
@@ -343,6 +344,9 @@ function deleteProject(workspaceId: string, projectId: string) {
   });
 }
 
+// Platform-aware modifier key: Cmd on macOS, Ctrl on Linux
+const mod = process.platform === "darwin" ? "cmd" : "ctrl"
+
 // Built-in global shortcuts that should work even when webview has focus
 // These map accelerator strings to their key components for broadcasting
 const builtInShortcuts: Array<{
@@ -354,18 +358,18 @@ const builtInShortcuts: Array<{
   meta: boolean;
   action?: string; // Optional action for menu items that have custom handling
 }> = [
-  // Cmd+T - new browser tab
-  { accelerator: "t", key: "t", ctrl: false, shift: false, alt: false, meta: true, action: "new-browser-tab" },
-  // Cmd+P - open command palette (file search)
-  { accelerator: "p", key: "p", ctrl: false, shift: false, alt: false, meta: true, action: "open-command-palette" },
-  // Cmd+Shift+P - open command palette (commands)
-  { accelerator: "cmd+shift+p", key: "p", ctrl: false, shift: true, alt: false, meta: true },
-  // Cmd+Shift+F - find all in folder
-  { accelerator: "cmd+shift+f", key: "f", ctrl: false, shift: true, alt: false, meta: true },
-  // Cmd+W - close tab
-  { accelerator: "w", key: "w", ctrl: false, shift: false, alt: false, meta: true },
-  // Cmd+Shift+W - close window
-  { accelerator: "cmd+shift+w", key: "w", ctrl: false, shift: true, alt: false, meta: true },
+  // Mod+T - new browser tab
+  { accelerator: "t", key: "t", ctrl: mod === "ctrl", shift: false, alt: false, meta: mod === "cmd", action: "new-browser-tab" },
+  // Mod+P - open command palette (file search)
+  { accelerator: "p", key: "p", ctrl: mod === "ctrl", shift: false, alt: false, meta: mod === "cmd", action: "open-command-palette" },
+  // Mod+Shift+P - open command palette (commands)
+  { accelerator: `${mod}+shift+p`, key: "p", ctrl: mod === "ctrl", shift: true, alt: false, meta: mod === "cmd" },
+  // Mod+Shift+F - find all in folder
+  { accelerator: `${mod}+shift+f`, key: "f", ctrl: mod === "ctrl", shift: true, alt: false, meta: mod === "cmd" },
+  // Mod+W - close tab
+  { accelerator: "w", key: "w", ctrl: mod === "ctrl", shift: false, alt: false, meta: mod === "cmd" },
+  // Mod+Shift+W - close window
+  { accelerator: `${mod}+shift+w`, key: "w", ctrl: mod === "ctrl", shift: true, alt: false, meta: mod === "cmd" },
   // Ctrl+Tab - next tab (won't work when webview focused, but standard shortcut)
   { accelerator: "ctrl+tab", key: "Tab", ctrl: true, shift: false, alt: false, meta: false },
   // Ctrl+Shift+Tab - previous tab
@@ -416,7 +420,7 @@ function updateApplicationMenu() {
   ApplicationMenu.setApplicationMenu([
     {
       label: "co(lab)",
-      submenu: [{ role: "quit", accelerator: "cmd+q" }],
+      submenu: [{ role: "quit", accelerator: `${mod}+q` }],
     },
     {
       label: "File",
@@ -425,32 +429,32 @@ function updateApplicationMenu() {
           type: "normal",
           label: "Open File...",
           action: "open-file",
-          accelerator: "cmd+o",
+          accelerator: `${mod}+o`,
         },
         {
           type: "normal",
           label: "Open Folder...",
           action: "open-folder",
-          accelerator: "cmd+shift+o",
+          accelerator: `${mod}+shift+o`,
         },
         { type: "separator" },
         {
           type: "normal",
           label: "New Browser Tab",
           action: "new-browser-tab",
-          accelerator: "cmd+t",
+          accelerator: `${mod}+t`,
         },
         {
           type: "normal",
           label: "Close Tab",
           action: "close-tab",
-          accelerator: "cmd+w",
+          accelerator: `${mod}+w`,
         },
         {
           type: "normal",
           label: "Close Window",
           action: "close-window",
-          accelerator: "cmd+shift+w",
+          accelerator: `${mod}+shift+w`,
         },
       ],
     },
@@ -492,19 +496,19 @@ function updateApplicationMenu() {
           type: "normal",
           label: "Command Palette",
           action: "open-command-palette",
-          accelerator: "cmd+p",
+          accelerator: `${mod}+p`,
         },
         {
           type: "normal",
           label: "Command Palette (Commands)",
-          action: "global-shortcut:cmd+shift+p",
-          accelerator: "cmd+shift+p",
+          action: `global-shortcut:${mod}+shift+p`,
+          accelerator: `${mod}+shift+p`,
         },
         {
           type: "normal",
           label: "Find in Files",
-          action: "global-shortcut:cmd+shift+f",
-          accelerator: "cmd+shift+f",
+          action: `global-shortcut:${mod}+shift+f`,
+          accelerator: `${mod}+shift+f`,
         },
         // Add plugin shortcuts here if any exist
         ...(pluginShortcutItems.length > 0 ? [
@@ -877,7 +881,7 @@ Electrobun.events.on("context-menu-clicked", (e) => {
     const { nodePath } = data;
     console.log("open node in folder", nodePath);
 
-    Utils.showItemInFolder(nodePath);
+    getPlatform().showItemInFolder(nodePath);
   } else if (action === "remove_project_from_colab") {
     const { workspaceId, windowId, projectId } = data;
     console.log("remove_project_from_colab", projectId);
@@ -1789,7 +1793,7 @@ const createWindow = (workspaceId: string, window?: WindowConfigType, offset?: {
           return existsSync(path);
         },
         showInFinder: ({ path }) => {
-          Utils.showItemInFolder(path);
+          getPlatform().showItemInFolder(path);
         },
         mkdir: ({ path }) => {
           try {
@@ -2671,7 +2675,7 @@ const createWindow = (workspaceId: string, window?: WindowConfigType, offset?: {
   });
   console.log('---->1 creating main window')
   const mainWindow = new BrowserWindow({
-    titleBarStyle: "hiddenInset",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     frame: {
       width: window.position.width || 5,
       height: window.position.height || 5,

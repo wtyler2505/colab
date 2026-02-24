@@ -55,8 +55,17 @@ export const install = () => {
     `@biomejs/biome@${BIOME_VERSION}`,
   ]);
 
-  const biomeFolder =
-    process.arch === "x64" ? "cli-darwin-x64" : "cli-darwin-arm64";
+  const platformFolderMap: Record<string, Record<string, string>> = {
+    darwin: {
+      x64: "cli-darwin-x64",
+      arm64: "cli-darwin-arm64",
+    },
+    linux: {
+      x64: "cli-linux-x64",
+      arm64: "cli-linux-arm64",
+    },
+  }
+  const biomeFolder = platformFolderMap[process.platform]?.[process.arch] ?? "cli-linux-x64"
 
   const installedBiomeBinaryPath = join(
     BUN_DEPS_FOLDER,

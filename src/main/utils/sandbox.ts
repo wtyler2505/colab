@@ -1,5 +1,6 @@
 import { spawnSync } from "bun";
 import { spawn } from "child_process";
+import { platform } from "os";
 
 export type SandboxRule = {
   action: string;
@@ -47,6 +48,14 @@ export const runCommandWithSandbox = (
   command: string,
   args: string[]
 ): void => {
+  // sandbox-exec is macOS-only; on Linux just run the command directly
+  if (platform() !== "darwin") {
+    const result = spawnSync([command, ...args]);
+    console.log(result.stdout.toString());
+    console.error(result.stderr.toString());
+    return;
+  }
+
   const sbpl = jsonToSBPL(profile);
   const sandboxCommand = ["sandbox-exec", "-p", sbpl, command, ...args];
 
@@ -62,6 +71,11 @@ export const sandboxSpawn = (
   args: string[],
   options: any = {}
 ) => {
+  // sandbox-exec is macOS-only; on Linux just spawn the command directly
+  if (platform() !== "darwin") {
+    return spawn(command, args, options);
+  }
+
   const sbpl = jsonToSBPL(profile);
 
   const sandboxCommandArgs = ["-p", sbpl, command, ...args];

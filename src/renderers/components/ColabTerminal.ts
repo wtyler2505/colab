@@ -32,6 +32,7 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { MOD_KEY, MOD_SYMBOL, FONT_STACK_MONO } from "../utils/platformUtils";
 
 // We need to access electrobun RPC - it's set on window by the init script
 declare global {
@@ -309,7 +310,7 @@ export class ColabTerminal extends HTMLElement {
       this.terminal = new Terminal({
         cursorBlink: true,
         fontSize: 13,
-        fontFamily: 'Monaco, "Courier New", monospace',
+        fontFamily: FONT_STACK_MONO,
         theme: {
           background: "#0a0a0a",
           foreground: "#d9d9d9",
@@ -329,7 +330,7 @@ export class ColabTerminal extends HTMLElement {
       const webLinksAddon = new WebLinksAddon(
         (event: MouseEvent, uri: string) => {
           // Only open if Alt or Cmd/Meta is held
-          if (event.altKey || event.metaKey) {
+          if (event.altKey || event[MOD_KEY]) {
             event.preventDefault();
             window.open(uri, '_blank');
           }
@@ -342,7 +343,7 @@ export class ColabTerminal extends HTMLElement {
             // Show tooltip explaining how to open the link
             const tooltip = document.createElement('div');
             tooltip.className = 'colab-link-tooltip';
-            tooltip.textContent = `⌘+click or ⌥+click to open: ${uri.length > 50 ? uri.slice(0, 50) + '...' : uri}`;
+            tooltip.textContent = `${MOD_SYMBOL}+click or ⌥+click to open: ${uri.length > 50 ? uri.slice(0, 50) + '...' : uri}`;
             tooltip.style.cssText = `
               position: fixed;
               left: ${event.clientX + 10}px;
